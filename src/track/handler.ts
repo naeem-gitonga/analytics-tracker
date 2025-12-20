@@ -19,5 +19,3 @@ export const track: TrackHandler = async (
   const analyticsService = new AnalyticsService(event);
   return analyticsService.handle();
 };
-
-export const handler = track;
