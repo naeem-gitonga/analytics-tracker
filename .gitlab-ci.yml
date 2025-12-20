@@ -38,7 +38,9 @@ cdk_synth:
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
       changes:
-        - backend/analytics-tracker/**/*
+        - src/**/*
+        - .gitlab-ci.yml
+        - cdk/**/*
     - if: '$CI_COMMIT_BRANCH == "staging"'
       changes:
         - backend/analytics-tracker/**/*
