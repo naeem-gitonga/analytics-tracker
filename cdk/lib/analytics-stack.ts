@@ -96,13 +96,11 @@ export class AnalyticsTrackerStack extends Stack {
     const endpointType = config.endpointType || EndpointType.EDGE;
 
     // Create Lambda function
-    const lambdaPath = path.join(__dirname, '../../src/track');
-
     this.trackingFunction = new Function(this, 'AnalyticsTrackerFunction', {
       functionName: `${functionPrefix}-analytics-tracker`,
       runtime: Runtime.NODEJS_22_X,
       handler: 'handler.handler',
-      code: Code.fromAsset(lambdaPath, {
+      code: Code.fromAsset(path.join(__dirname, '../../src'), {
         bundling: {
           image: Runtime.NODEJS_22_X.bundlingImage,
           command: [
@@ -110,7 +108,7 @@ export class AnalyticsTrackerStack extends Stack {
             '-c',
             [
               'npm install -g typescript @types/node @types/aws-lambda @aws-sdk/client-s3',
-              'tsc handler.ts --outDir /asset-output --esModuleInterop --module commonjs --target es2020 --lib es2020',
+              'tsc track/handler.ts --outDir /asset-output --esModuleInterop --module commonjs --target es2020 --lib es2020',
             ].join(' && '),
           ],
           user: 'root',
@@ -122,8 +120,9 @@ export class AnalyticsTrackerStack extends Stack {
                 return false;
               }
 
+              const srcPath = path.join(__dirname, '../../src');
               execSync(
-                `tsc ${path.join(lambdaPath, 'handler.ts')} --outDir ${outputDir} --esModuleInterop --module commonjs --target es2020 --lib es2020`,
+                `tsc ${path.join(srcPath, 'track/handler.ts')} --outDir ${outputDir} --esModuleInterop --module commonjs --target es2020 --lib es2020`,
                 { stdio: 'inherit' }
               );
 
