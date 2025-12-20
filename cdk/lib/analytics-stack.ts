@@ -93,10 +93,10 @@ export class AnalyticsTrackerStack extends Stack {
     const enableMetrics = config.enableMetrics ?? true;
     const lambdaTimeout = config.lambdaTimeout || 10;
     const enableAccessLogs = config.enableAccessLogs ?? true;
-    const endpointType = config.endpointType || EndpointType.REGIONAL;
+    const endpointType = config.endpointType || EndpointType.EDGE;
 
     // Create Lambda function
-    const lambdaPath = path.join(__dirname, '../../src');
+    const lambdaPath = path.join(__dirname, '../../src/track/handler.ts');
 
     this.trackingFunction = new Function(this, 'AnalyticsTrackerFunction', {
       functionName: `${functionPrefix}-analytics-tracker`,
