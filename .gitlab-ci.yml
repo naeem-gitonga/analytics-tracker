@@ -1,33 +1,53 @@
 stages:
+  - synth
   - test
   - deploy
 
-# .install_aws: &install_aws
-#   - apt update
-#   - apt install -y jq curl unzip
-#   - curl -k "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-#   - unzip "awscliv2.zip"
-#   - ./aws/install
+image: node:24.12.0
 
-# .common_setup: &common_setup
-#   - cd backend/analytics-tracker
-#   - npm i
-#   - npm i --save-dev @types/node
-#   - npm i -g aws-cdk typescript ts-node
+.install_aws: &install_aws
+  - apt update
+  - apt install -y jq curl unzip
+  - curl -k "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+  - unzip "awscliv2.zip"
+  - ./aws/install
 
-# .assume_role: &assume_role
-#   - >
-#     export $(printf "AWS_ACCESS_KEY_ID=%s AWS_SECRET_ACCESS_KEY=%s AWS_SESSION_TOKEN=%s"
-#     $(aws sts assume-role-with-web-identity
-#     --role-arn ${ROLE_ARN}
-#     --role-session-name "GitLabRunner-${CI_PROJECT_ID}-${CI_PIPELINE_ID}"
-#     --web-identity-token ${GITLAB_OIDC_TOKEN}
-#     --duration-seconds 3600
-#     --query 'Credentials.[AccessKeyId,SecretAccessKey,SessionToken]'
-#     --output text))
-#   - aws sts get-caller-identity
+.common_setup: &common_setup
+  - cd backend/analytics-tracker
+  - npm i
+  - npm i --save-dev @types/node
+  - npm i -g aws-cdk typescript ts-node
 
-# image: node:22.21.1
+.assume_role: &assume_role
+  - >
+    export $(printf "AWS_ACCESS_KEY_ID=%s AWS_SECRET_ACCESS_KEY=%s AWS_SESSION_TOKEN=%s"
+    $(aws sts assume-role-with-web-identity
+    --role-arn ${ROLE_ARN}
+    --role-session-name "GitLabRunner-${CI_PROJECT_ID}-${CI_PIPELINE_ID}"
+    --web-identity-token ${GITLAB_OIDC_TOKEN}
+    --duration-seconds 3600
+    --query 'Credentials.[AccessKeyId,SecretAccessKey,SessionToken]'
+    --output text))
+  - aws sts get-caller-identity
+
+cdk_synth:
+  id_tokens:
+    GITLAB_OIDC_TOKEN:
+      aud: https://gitlab.com
+  stage: s
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      changes:
+        - backend/analytics-tracker/**/*
+    - if: '$CI_COMMIT_BRANCH == "staging"'
+      changes:
+        - backend/analytics-tracker/**/*
+    - when: never
+  script:
+    - *install_aws
+    - *common_setup
+    - *assume_role
+    - npx cdk synth
 
 # lambda_test:
 #   stage: test
