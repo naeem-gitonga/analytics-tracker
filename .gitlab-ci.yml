@@ -56,8 +56,6 @@ lambda_test:
     - if: '$CI_COMMIT_BRANCH == "master"'
       when: never
     - if: '$CI_COMMIT_BRANCH == "staging"'
-      changes:
-        - src/**/*
     - when: never    
   script:
     - export NODE_ENV=cicd
