@@ -51,17 +51,6 @@ cdk_diff_staging:
 lambda_test:
   stage: test_and_diff
   rules:
-    - changes:
-        - $PWD/app/**/*
-        - $PWD/components/**/*
-        - $PWD/hooks/**/*
-        - $PWD/pages/**/*
-        - $PWD/utils/**/*
-        - $PWD/next.config.js
-        - $PWD/package.json
-        - $PWD/vercel.json
-        - $PWD/.gitlab-ci.yml
-      when: never
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
       when: never
     - if: '$CI_COMMIT_BRANCH == "master"'
