@@ -1,12 +1,30 @@
 service: analytics-tracker
-useDotenv: true
+frameworkVersion: '^4.0.0'
+
 build:
-  esbuild: false
+  esbuild:
+    bundle: true
+    minify: false
+    sourcemap:
+      type: linked
+      setNodeOptions: true
+    external:
+      - '@aws-sdk/*'
+    buildConcurrency: 3
+
 package:
   individually: false
+  patterns:
+    - '!.git/**'
+    - '!.webpack/**'
+    - '!node_modules/**'
+    - '!cdk/**'
+    - '!*.test.ts'
+    - '!.gitlab-ci.yml'
+
 plugins:
-  - serverless-webpack
   - serverless-offline
+
 custom:
   currentStage: ${opt:stage, self:provider.stage}
   serverless-offline:
@@ -15,12 +33,26 @@ custom:
     httpPort: 4000
     host: 0.0.0.0
     noPrependStageInUrl: true
+    # Enhanced v4 features for local development
+    lambdaPort: 4002 # ! Internal port used by serverless-offline's Lambda runtime; reserver for serverless, set here to 4002 otherwise it will default to 3002.
+    reloadHandler: true
+    useChildProcesses: true
+    printOutput: true
+    noTimeout: false
+
 provider:
   name: aws
   runtime: nodejs22.x
   stage: ${file(./src/js-helpers/set-stage.js):setStage}
   httpApi:
     shouldStartNameWithService: true
+    payload: '2.0'
+    cors: true
+  logs:
+    lambda:
+      logFormat: JSON
+      applicationLogLevel: INFO
+      systemLogLevel: INFO
 functions: ${file(./src/js-helpers/load-services.js):functions}
 resources:
   Resources:

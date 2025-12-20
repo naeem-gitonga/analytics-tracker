@@ -34,7 +34,7 @@ cdk_synth:
   id_tokens:
     GITLAB_OIDC_TOKEN:
       aud: https://gitlab.com
-  stage: s
+  stage: synth
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
       changes:
