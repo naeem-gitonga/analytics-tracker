@@ -1,5 +1,6 @@
 stages:
   - test_and_diff
+  - publish
   - deploy
 
 image: node:24.12.0
@@ -58,9 +59,8 @@ lambda_test:
     - if: '$CI_COMMIT_BRANCH == "staging"'
     - when: never    
   script:
-    - export NODE_ENV=cicd
     - npm i
-    - npm run test
+    - NODE_ENV=cicd npm run test
 
 deploy_staging:
   id_tokens:
@@ -80,6 +80,18 @@ deploy_staging:
     - echo "CI_ENVIRONMENT_NAME=$CI_ENVIRONMENT_NAME"
     - echo "NODE_ENV=$NODE_ENV"
     - npx cdk deploy AnalyticsTrackerStaging --require-approval never --role-arn ${INFRASTRUCTURE_ROLE_ARN}
+
+publish:
+  image: node:24.12.0
+  stage: release
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      when: never
+    - if: '$CI_COMMIT_BRANCH == "master"'
+  script:
+    - npm install @semantic-release/gitlab @semantic-release/commit-analyzer @semantic-release/release-notes-generator conventional-changelog-conventionalcommits
+    - GITLAB_TOKEN=$PROJECT_RELEASE_TOKEN npx semantic-release@25
+
 
 deploy_production:
   id_tokens:
