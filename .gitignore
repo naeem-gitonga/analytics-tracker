@@ -6,7 +6,6 @@ yarn.lock
 # CDK
 cdk.out/
 cdk/**/*.js
-*.d.ts
 !cdk/bin/app.js
 !lambda/index.js
 *.js.map
