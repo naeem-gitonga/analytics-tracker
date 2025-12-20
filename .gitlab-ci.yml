@@ -57,11 +57,10 @@ lambda_test:
       when: never
     - if: '$CI_COMMIT_BRANCH == "staging"'
       changes:
-        - backend/analytics-tracker/**/*
+        - src/**/*
     - when: never    
   script:
     - export NODE_ENV=cicd
-    - cd backend/analytics-tracker
     - npm i
     - npm run test
 
