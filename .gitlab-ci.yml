@@ -1,6 +1,6 @@
 stages:
   - test_and_diff
-  - publish
+  - release
   - deploy
 
 image: node:24.12.0
@@ -81,7 +81,7 @@ deploy_staging:
     - echo "NODE_ENV=$NODE_ENV"
     - npx cdk deploy AnalyticsTrackerStaging --require-approval never --role-arn ${INFRASTRUCTURE_ROLE_ARN}
 
-publish:
+publish_release:
   image: node:24.12.0
   stage: release
   rules:
