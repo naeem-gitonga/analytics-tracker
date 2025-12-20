@@ -96,7 +96,7 @@ export class AnalyticsTrackerStack extends Stack {
     const endpointType = config.endpointType || EndpointType.EDGE;
 
     // Create Lambda function
-    const lambdaPath = path.join(__dirname, '../../src/track/handler.ts');
+    const lambdaPath = path.join(__dirname, '../../src/track');
 
     this.trackingFunction = new Function(this, 'AnalyticsTrackerFunction', {
       functionName: `${functionPrefix}-analytics-tracker`,
