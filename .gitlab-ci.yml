@@ -42,7 +42,7 @@ cdk_synth:
         - .gitlab-ci.yml
         - cdk/**/*
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
-    - when: never
+      when: never
   script:
     - *install_aws
     - *common_setup
