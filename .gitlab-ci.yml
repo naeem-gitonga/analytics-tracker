@@ -30,7 +30,7 @@ image: node:24.12.0
     --output text))
   - aws sts get-caller-identity
 
-cdk_synth_staging:
+cdk_diff_staging:
   id_tokens:
     GITLAB_OIDC_TOKEN:
       aud: https://gitlab.com
@@ -47,7 +47,7 @@ cdk_synth_staging:
     - *install_aws
     - *common_setup
     - *assume_role
-    - npx cdk synth AnalyticsTrackerStaging --require-approval never --role-arn ${INFRASTRUCTURE_ROLE_ARN}
+    - npx cdk diff AnalyticsTrackerStaging --require-approval never --role-arn ${INFRASTRUCTURE_ROLE_ARN}
 
 # lambda_test:
 #   stage: test
