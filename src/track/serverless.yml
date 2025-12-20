@@ -1,0 +1,8 @@
+functions:
+  track:
+    handler: src/track/handler.handler
+    events:
+      - http:
+          path: track
+          method: POST
+          cors: true

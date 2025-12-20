@@ -1,0 +1,101 @@
+stages:
+  - test
+  - deploy
+
+.install_aws: &install_aws
+  - apt update
+  - apt install -y jq curl unzip
+  - curl -k "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+  - unzip "awscliv2.zip"
+  - ./aws/install
+
+.common_setup: &common_setup
+  - cd backend/analytics-tracker
+  - npm i
+  - npm i --save-dev @types/node
+  - npm i -g aws-cdk typescript ts-node
+
+.assume_role: &assume_role
+  - >
+    export $(printf "AWS_ACCESS_KEY_ID=%s AWS_SECRET_ACCESS_KEY=%s AWS_SESSION_TOKEN=%s"
+    $(aws sts assume-role-with-web-identity
+    --role-arn ${ROLE_ARN}
+    --role-session-name "GitLabRunner-${CI_PROJECT_ID}-${CI_PIPELINE_ID}"
+    --web-identity-token ${GITLAB_OIDC_TOKEN}
+    --duration-seconds 3600
+    --query 'Credentials.[AccessKeyId,SecretAccessKey,SessionToken]'
+    --output text))
+  - aws sts get-caller-identity
+
+image: node:22.21.1
+
+lambda_test:
+  stage: test
+  rules:
+    - changes:
+        - $PWD/app/**/*
+        - $PWD/components/**/*
+        - $PWD/hooks/**/*
+        - $PWD/pages/**/*
+        - $PWD/utils/**/*
+        - $PWD/next.config.js
+        - $PWD/package.json
+        - $PWD/vercel.json
+        - $PWD/.gitlab-ci.yml
+      when: never
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      when: never
+    - if: '$CI_COMMIT_BRANCH == "master"'
+      when: never
+    - if: '$CI_COMMIT_BRANCH == "staging"'
+      changes:
+        - backend/analytics-tracker/**/*
+    - when: never
+    
+  script:
+    - export NODE_ENV=cicd
+    - cd backend/analytics-tracker
+    - npm i
+    - npm run test
+
+deploy_staging:
+  id_tokens:
+    GITLAB_OIDC_TOKEN:
+      aud: https://gitlab.com
+  stage: deploy
+  environment: staging
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      when: never
+    - if: '$CI_COMMIT_BRANCH == "staging"'
+      changes:
+        - backend/analytics-tracker/**/*
+    - when: never
+  script:
+    - *install_aws
+    - *common_setup
+    - *assume_role
+    - echo "CI_ENVIRONMENT_NAME=$CI_ENVIRONMENT_NAME"
+    - echo "NODE_ENV=$NODE_ENV"
+    - npx cdk deploy AnalyticsTrackerStaging --require-approval never --role-arn ${INFRASTRUCTURE_ROLE_ARN}
+
+deploy_production:
+  id_tokens:
+    GITLAB_OIDC_TOKEN:
+      aud: https://gitlab.com
+  stage: deploy
+  environment: production
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      when: never
+    - if: '$CI_COMMIT_BRANCH == "master"'
+      changes:
+        - backend/analytics-tracker/**/*
+    - when: never
+  script:
+    - *install_aws
+    - unset NODE_ENV
+    - *common_setup
+    - *assume_role
+    - echo "CI_ENVIRONMENT_NAME=$CI_ENVIRONMENT_NAME"
+    - npx cdk deploy AnalyticsTrackerProd --require-approval never --role-arn ${INFRASTRUCTURE_ROLE_ARN}
