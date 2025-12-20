@@ -72,8 +72,6 @@ deploy_staging:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
       when: never
     - if: '$CI_COMMIT_BRANCH == "staging"'
-      changes:
-        - backend/analytics-tracker/**/*
     - when: never
   script:
     - *install_aws
@@ -93,8 +91,6 @@ deploy_production:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
       when: never
     - if: '$CI_COMMIT_BRANCH == "master"'
-      changes:
-        - backend/analytics-tracker/**/*
     - when: never
   script:
     - *install_aws
