@@ -109,7 +109,7 @@ deploy_production:
       when: never
     - if: '$CI_COMMIT_BRANCH == "master"'
     - when: never
-  trigger: manual
+  when: manual
   script:
     - *install_aws
     - unset NODE_ENV
