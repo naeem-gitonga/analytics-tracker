@@ -30,7 +30,9 @@ image: node:24.12.0
     --output text))
   - aws sts get-caller-identity
 
-cdk_diff_staging:
+cdk_diff:
+  variables:
+    APP: AnalyticsTrackerStaging
   id_tokens:
     GITLAB_OIDC_TOKEN:
       aud: https://gitlab.com
@@ -41,13 +43,16 @@ cdk_diff_staging:
         - src/**/*
         - .gitlab-ci.yml
         - cdk/**/*
+    - if: $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH
+      variables:
+        APP: AnalyticsTrackerProd
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
       when: never
   script:
     - *install_aws
     - *common_setup
     - *assume_role
-    - npx cdk diff AnalyticsTrackerStaging --require-approval never --role-arn ${INFRASTRUCTURE_ROLE_ARN}
+    - npx cdk diff $APP --require-approval never --role-arn ${INFRASTRUCTURE_ROLE_ARN}
 
 lambda_test:
   stage: test_and_diff
@@ -104,6 +109,7 @@ deploy_production:
       when: never
     - if: '$CI_COMMIT_BRANCH == "master"'
     - when: never
+  trigger: manual
   script:
     - *install_aws
     - unset NODE_ENV
