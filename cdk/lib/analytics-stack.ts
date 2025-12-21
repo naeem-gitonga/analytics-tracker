@@ -213,28 +213,4 @@ export class AnalyticsTrackerStack extends Stack {
     });
   }
 
-  /**
-   * Grant an API Gateway permission to invoke this tracker
-   * Use this when you have multiple API Gateways that need to call this tracker
-   */
-  public grantInvokeToApiGateway(apiGatewayArn: string): void {
-    this.trackingFunction.addPermission('AllowApiGatewayInvoke', {
-      principal: new (require('aws-cdk-lib/aws-iam').ServicePrincipal)('apigateway.amazonaws.com'),
-      sourceArn: apiGatewayArn,
-    });
-  }
-
-  /**
-   * Grant write access to an additional bucket
-   * Use this to dynamically add buckets after stack creation
-   */
-  public grantWriteToBucket(bucketName: string): void {
-    const policy = new PolicyStatement({
-      effect: Effect.ALLOW,
-      actions: ['s3:PutObject', 's3:PutObjectAcl'],
-      resources: [`arn:aws:s3:::${bucketName}/analytics/*`],
-    });
-
-    this.trackingFunction.addToRolePolicy(policy);
-  }
 }
