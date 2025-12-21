@@ -8,6 +8,8 @@ A standalone, serverless analytics tracking system for AWS that supports multipl
 Client/App → API Gateway → Lambda → S3 (bucket per app) → Athena → Visualization
 ```
 
+Uses CDK for infrastructure.
+
 **Key Features:**
 - ✅ Multi-tenant support (one tracker, multiple apps/buckets)
 - ✅ Fine-grained IAM controls
@@ -20,6 +22,7 @@ Client/App → API Gateway → Lambda → S3 (bucket per app) → Athena → Vis
 
 - [Installation](#installation)
 - [Configuration](#configuration)
+- [Local Dev](#local-dev)
 - [Deployment](#deployment)
 - [Usage](#usage)
 - [IAM Permissions](#iam-permissions)
@@ -28,28 +31,7 @@ Client/App → API Gateway → Lambda → S3 (bucket per app) → Athena → Vis
 - [Security](#security)
 - [Cost Estimation](#cost-estimation)
 
-## Installation
 
-### Option 1: Copy to Your Project
-
-```bash
-# Copy the entire analytics-tracker folder to your project
-cp -r analytics-tracker /path/to/your/project/
-cd /path/to/your/project/analytics-tracker
-npm install
-```
-
-### Option 2: Clone as Separate Repository
-
-```bash
-# Create a new repo and copy contents
-git init analytics-tracker
-cp -r analytics-tracker/* analytics-tracker/
-cd analytics-tracker
-npm install
-git add .
-git commit -m "Initial commit: Analytics tracker"
-```
 
 ## Configuration
 
@@ -93,17 +75,10 @@ new AnalyticsTrackerStack(
   }
 );
 ```
-
-### 2. Create S3 Buckets
-
-Create separate buckets for each app/tenant:
-
+## Local Dev
 ```bash
-aws s3 mb s3://app1-analytics-prod
-aws s3 mb s3://app2-analytics-prod
+npm run offline
 ```
-
-Or use CDK/CloudFormation in your app's infrastructure.
 
 ## Deployment
 
@@ -142,6 +117,7 @@ curl -X POST https://your-api-url.execute-api.us-east-1.amazonaws.com/prod/track
     "viewport": { "width": 1920, "height": 1080 },
     "sessionId": "abc123",
     "referrer": "https://google.com"
+    "fromWebsite": "LinkedIn"
   }'
 ```
 
@@ -159,6 +135,7 @@ curl -X POST https://your-api-url.execute-api.us-east-1.amazonaws.com/prod/track
 - `sessionId` (string): Session identifier
 - `referrer` (string): Referrer URL
 - `metadata` (object): Any additional custom data
+- `fromWebsite` (string): use for promo code to track promotions or other data relavant to where the interest comes from
 
 ### Response
 
@@ -199,7 +176,6 @@ The Lambda function is granted fine-grained S3 write permissions:
   "Effect": "Allow",
   "Action": [
     "s3:PutObject",
-    "s3:PutObjectAcl"
   ],
   "Resource": [
     "arn:aws:s3:::app1-analytics-prod/analytics/*",
@@ -221,35 +197,6 @@ allowedBuckets: ['*-analytics']  // Matches: my-app-analytics, other-app-analyti
 allowedBuckets: ['analytics-*']  // Matches: analytics-prod, analytics-staging
 ```
 
-### Multiple API Gateways
-
-If you have multiple API Gateways calling this tracker:
-
-```typescript
-const tracker = new AnalyticsTrackerStack(/*...*/);
-
-// Grant permission to another API Gateway
-tracker.grantInvokeToApiGateway('arn:aws:execute-api:us-east-1:123456789012:api-id/*');
-```
-
-### Additional Permissions
-
-For encrypted buckets or other AWS services:
-
-```typescript
-import { PolicyStatement, Effect } from 'aws-cdk-lib/aws-iam';
-
-new AnalyticsTrackerStack(app, 'Tracker', {
-  allowedBuckets: ['my-encrypted-bucket'],
-  additionalPolicies: [
-    new PolicyStatement({
-      effect: Effect.ALLOW,
-      actions: ['kms:Decrypt', 'kms:GenerateDataKey'],
-      resources: ['arn:aws:kms:us-east-1:123456789012:key/your-key-id'],
-    }),
-  ],
-});
-```
 
 ## Querying Data
 
@@ -407,6 +354,7 @@ Events are stored as JSON with this structure:
   };
   referrer: string;          // Referrer URL
   userAgent: string;         // User agent string
+  fromWebsite: string;
   // ... any custom metadata
 }
 ```
