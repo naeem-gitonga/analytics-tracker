@@ -5,6 +5,18 @@ stages:
 
 image: node:24.12.0
 
+workflow:
+  rules:
+    - changes:
+        - README.md
+      when: never
+    - when: always
+
+.never_on_mr_rules:
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      when: never
+
 .install_aws: &install_aws
   - apt update
   - apt install -y jq curl unzip
@@ -38,8 +50,7 @@ cdk_diff:
       aud: https://gitlab.com
   stage: test_and_diff
   rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
-      when: never
+    - !reference [.never_on_mr_rules, rules]
     - if: $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH
       variables:
         APP: AnalyticsTrackerProd
@@ -57,8 +68,7 @@ cdk_diff:
 lambda_test:
   stage: test_and_diff
   rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
-      when: never
+    - !reference [.never_on_mr_rules, rules]
     - if: '$CI_COMMIT_BRANCH == "master"'
       when: never
     - if: '$CI_COMMIT_BRANCH == "staging"'
@@ -74,8 +84,7 @@ deploy_staging:
   stage: deploy
   environment: staging
   rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
-      when: never
+    - !reference [.never_on_mr_rules, rules]
     - if: '$CI_COMMIT_BRANCH == "staging"'
     - when: never
   script:
@@ -90,13 +99,11 @@ publish_release:
   image: node:24.12.0
   stage: release
   rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
-      when: never
+    - !reference [.never_on_mr_rules, rules]
     - if: '$CI_COMMIT_BRANCH == "master"'
   script:
     - npm install @semantic-release/gitlab @semantic-release/commit-analyzer @semantic-release/release-notes-generator conventional-changelog-conventionalcommits
     - GITLAB_TOKEN=$PROJECT_RELEASE_TOKEN npx semantic-release@25
-
 
 deploy_production:
   id_tokens:
@@ -105,8 +112,7 @@ deploy_production:
   stage: deploy
   environment: production
   rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
-      when: never
+    - !reference [.never_on_mr_rules, rules]
     - if: '$CI_COMMIT_BRANCH == "master"'
     - when: never
   when: manual
