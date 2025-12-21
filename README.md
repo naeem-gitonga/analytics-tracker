@@ -22,6 +22,7 @@ Uses CDK for infrastructure.
 
 - [Installation](#installation)
 - [Configuration](#configuration)
+- [Local Dev](#local-dev)
 - [Deployment](#deployment)
 - [Usage](#usage)
 - [IAM Permissions](#iam-permissions)
@@ -73,6 +74,10 @@ new AnalyticsTrackerStack(
     },
   }
 );
+```
+## Local Dev
+```bash
+npm run offline
 ```
 
 ## Deployment
