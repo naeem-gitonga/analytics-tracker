@@ -123,6 +123,7 @@ export default class AnalyticsService {
       const eventId = `${Date.now()}-${crypto.randomBytes(8).toString('hex')}`;
 
       // Build analytics record
+      const { userId = null, ...remainingMetadata } = body.metadata || {};
       const record: AnalyticsRecord = {
         eventId,
         eventType: body.eventType,
@@ -136,8 +137,9 @@ export default class AnalyticsService {
         viewport: body.viewport || { width: 0, height: 0 },
         referrer: body.referrer || this.event.headers?.referer || 'direct',
         userAgent,
+        userId,
         // Include any additional metadata
-        ...(body.metadata || {}),
+        ...remainingMetadata,
       };
 
       // Parse timestamp for S3 partitioning

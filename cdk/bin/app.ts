@@ -18,6 +18,9 @@ new AnalyticsTrackerStack(
     ],
     functionPrefix: 'analytics-staging',
     apiName: 'analytics-api-staging',
+    outputBucketName: 'test-analytics-output',
+    protectBucketsFromDelete: true,
+    enableBucketVersioning: true,
   },
   {
     env: {
@@ -40,6 +43,9 @@ new AnalyticsTrackerStack(
     ],
     functionPrefix: 'analytics-prod',
     apiName: 'analytics-api-prod',
+    outputBucketName: 'test-analytics-output',
+    protectBucketsFromDelete: true,
+    enableBucketVersioning: true,
   },
   {
     env: {

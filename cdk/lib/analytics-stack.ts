@@ -10,7 +10,9 @@ import {
   EndpointType,
   MethodLoggingLevel,
 } from 'aws-cdk-lib/aws-apigateway';
-import { PolicyStatement, Effect } from 'aws-cdk-lib/aws-iam';
+import { PolicyStatement, Effect, AnyPrincipal } from 'aws-cdk-lib/aws-iam';
+import { Bucket, BucketPolicy } from 'aws-cdk-lib/aws-s3';
+import { AwsCustomResource, AwsCustomResourcePolicy, PhysicalResourceId } from 'aws-cdk-lib/custom-resources';
 
 export interface AnalyticsTrackerConfig {
   /**
@@ -62,6 +64,28 @@ export interface AnalyticsTrackerConfig {
   additionalPolicies?: PolicyStatement[];
 
   /**
+   * Attach a bucket policy to all non-wildcard buckets that denies all delete
+   * actions (s3:DeleteObject, s3:DeleteObjectVersion, s3:DeleteBucket) for
+   * every principal except the AWS account root user.
+   * @default false
+   */
+  protectBucketsFromDelete?: boolean;
+
+  /**
+   * Enable versioning on all non-wildcard buckets so deleted objects can be
+   * recovered from previous versions.
+   * @default false
+   */
+  enableBucketVersioning?: boolean;
+
+  /**
+   * Name for an output bucket used for metadata storage.
+   * When provided, CDK creates and manages the bucket with versioning enabled
+   * and a deny-delete policy for all principals except the root user.
+   */
+  outputBucketName?: string;
+
+  /**
    * Enable API Gateway access logging
    * @default true
    */
@@ -77,6 +101,7 @@ export interface AnalyticsTrackerConfig {
 export class AnalyticsTrackerStack extends Stack {
   public readonly api: RestApi;
   public readonly trackingFunction: Function;
+  public readonly outputBucket?: Bucket;
 
   constructor(scope: Construct, id: string, config: AnalyticsTrackerConfig, props?: StackProps) {
     super(scope, id, props);
@@ -162,6 +187,94 @@ export class AnalyticsTrackerStack extends Stack {
     if (config.additionalPolicies) {
       config.additionalPolicies.forEach((policy) => {
         this.trackingFunction.addToRolePolicy(policy);
+      });
+    }
+
+    // Create output bucket for metadata storage
+    if (config.outputBucketName) {
+      this.outputBucket = new Bucket(this, 'OutputBucket', {
+        bucketName: config.outputBucketName,
+        versioned: true,
+      });
+
+      this.outputBucket.addToResourcePolicy(new PolicyStatement({
+        sid: 'DenyDeleteExceptRootUser',
+        effect: Effect.DENY,
+        principals: [new AnyPrincipal()],
+        actions: ['s3:DeleteObject', 's3:DeleteObjectVersion', 's3:DeleteBucket'],
+        resources: [this.outputBucket.bucketArn, `${this.outputBucket.bucketArn}/*`],
+        conditions: {
+          StringNotEquals: {
+            'aws:PrincipalArn': `arn:aws:iam::${this.account}:root`,
+          },
+        },
+      }));
+
+      new CfnOutput(this, 'OutputBucketName', {
+        value: this.outputBucket.bucketName,
+        description: 'Output bucket for metadata storage',
+        exportName: `${id}-OutputBucketName`,
+      });
+
+      new CfnOutput(this, 'OutputBucketArn', {
+        value: this.outputBucket.bucketArn,
+        description: 'Output bucket ARN',
+        exportName: `${id}-OutputBucketArn`,
+      });
+    }
+
+    // Apply bucket-level protections to all explicitly named (non-wildcard) buckets
+    if (config.protectBucketsFromDelete || config.enableBucketVersioning) {
+      const explicitBuckets = config.allowedBuckets.filter((b) => !b.includes('*'));
+      explicitBuckets.forEach((bucketName) => {
+        const bucket = Bucket.fromBucketName(this, `ProtectedBucket-${bucketName}`, bucketName);
+
+        if (config.protectBucketsFromDelete) {
+          const denyDelete = new PolicyStatement({
+            sid: 'DenyDeleteExceptRootUser',
+            effect: Effect.DENY,
+            principals: [new AnyPrincipal()],
+            actions: ['s3:DeleteObject', 's3:DeleteObjectVersion', 's3:DeleteBucket'],
+            resources: [bucket.bucketArn, `${bucket.bucketArn}/*`],
+            conditions: {
+              StringNotEquals: {
+                'aws:PrincipalArn': `arn:aws:iam::${this.account}:root`,
+              },
+            },
+          });
+          const bucketPolicy = new BucketPolicy(this, `BucketPolicy-${bucketName}`, { bucket });
+          bucketPolicy.document.addStatements(denyDelete);
+        }
+
+        if (config.enableBucketVersioning) {
+          new AwsCustomResource(this, `EnableVersioning-${bucketName}`, {
+            onCreate: {
+              service: 'S3',
+              action: 'putBucketVersioning',
+              parameters: {
+                Bucket: bucketName,
+                VersioningConfiguration: { Status: 'Enabled' },
+              },
+              physicalResourceId: PhysicalResourceId.of(`${bucketName}-versioning`),
+            },
+            onUpdate: {
+              service: 'S3',
+              action: 'putBucketVersioning',
+              parameters: {
+                Bucket: bucketName,
+                VersioningConfiguration: { Status: 'Enabled' },
+              },
+              physicalResourceId: PhysicalResourceId.of(`${bucketName}-versioning`),
+            },
+            policy: AwsCustomResourcePolicy.fromStatements([
+              new PolicyStatement({
+                effect: Effect.ALLOW,
+                actions: ['s3:PutBucketVersioning'],
+                resources: [bucket.bucketArn],
+              }),
+            ]),
+          });
+        }
       });
     }
 
