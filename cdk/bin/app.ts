@@ -21,7 +21,6 @@ new AnalyticsTrackerStack(
     apiName: 'analytics-api-staging',
     outputBucketName: 'test-analytics-gtng-output-staging',
     protectBucketsFromDelete: true,
-    enableBucketVersioning: true,
   },
   {
     env: {
@@ -36,7 +35,7 @@ new AnalyticsTrackerStack(
   app,
   'AnalyticsTrackerProd',
   {
-    allowedBuckets: [
+    managedBuckets: [
       'test-analytics-gtng',
     ],
     corsOrigins: [
@@ -45,8 +44,6 @@ new AnalyticsTrackerStack(
     functionPrefix: 'analytics-prod',
     apiName: 'analytics-api-prod',
     outputBucketName: 'test-analytics-gtng-output',
-    protectBucketsFromDelete: true,
-    enableBucketVersioning: true,
     additionalBucketPolicyStatements: [
       new PolicyStatement({
         sid: 'AthenaQueryResults',
