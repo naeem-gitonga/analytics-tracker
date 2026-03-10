@@ -72,6 +72,13 @@ export interface AnalyticsTrackerConfig {
   protectBucketsFromDelete?: boolean;
 
   /**
+   * Additional policy statements to include in the bucket policy for all
+   * non-wildcard allowedBuckets. Use this to preserve existing bucket policy
+   * statements that CDK would otherwise overwrite on deploy.
+   */
+  additionalBucketPolicyStatements?: PolicyStatement[];
+
+  /**
    * Enable versioning on all non-wildcard buckets so deleted objects can be
    * recovered from previous versions.
    * @default false
@@ -229,21 +236,29 @@ export class AnalyticsTrackerStack extends Stack {
       explicitBuckets.forEach((bucketName) => {
         const bucket = Bucket.fromBucketName(this, `ProtectedBucket-${bucketName}`, bucketName);
 
-        if (config.protectBucketsFromDelete) {
-          const denyDelete = new PolicyStatement({
-            sid: 'DenyDeleteExceptRootUser',
-            effect: Effect.DENY,
-            principals: [new AnyPrincipal()],
-            actions: ['s3:DeleteObject', 's3:DeleteObjectVersion', 's3:DeleteBucket'],
-            resources: [bucket.bucketArn, `${bucket.bucketArn}/*`],
-            conditions: {
-              StringNotEquals: {
-                'aws:PrincipalArn': `arn:aws:iam::${this.account}:root`,
-              },
-            },
-          });
+        if (config.protectBucketsFromDelete || config.additionalBucketPolicyStatements?.length) {
           const bucketPolicy = new BucketPolicy(this, `BucketPolicy-${bucketName}`, { bucket });
-          bucketPolicy.document.addStatements(denyDelete);
+
+          if (config.protectBucketsFromDelete) {
+            bucketPolicy.document.addStatements(new PolicyStatement({
+              sid: 'DenyDeleteExceptRootUser',
+              effect: Effect.DENY,
+              principals: [new AnyPrincipal()],
+              actions: ['s3:DeleteObject', 's3:DeleteObjectVersion', 's3:DeleteBucket'],
+              resources: [bucket.bucketArn, `${bucket.bucketArn}/*`],
+              conditions: {
+                StringNotEquals: {
+                  'aws:PrincipalArn': `arn:aws:iam::${this.account}:root`,
+                },
+              },
+            }));
+          }
+
+          if (config.additionalBucketPolicyStatements) {
+            config.additionalBucketPolicyStatements.forEach((statement) => {
+              bucketPolicy.document.addStatements(statement);
+            });
+          }
         }
 
         if (config.enableBucketVersioning) {
