@@ -21,7 +21,6 @@ new AnalyticsTrackerStack(
     apiName: 'analytics-api-staging',
     outputBucketName: 'test-analytics-gtng-output-staging',
     protectBucketsFromDelete: true,
-    enableBucketVersioning: true,
   },
   {
     env: {
@@ -36,7 +35,7 @@ new AnalyticsTrackerStack(
   app,
   'AnalyticsTrackerProd',
   {
-    allowedBuckets: [
+    managedBuckets: [
       'test-analytics-gtng',
     ],
     corsOrigins: [
@@ -45,8 +44,18 @@ new AnalyticsTrackerStack(
     functionPrefix: 'analytics-prod',
     apiName: 'analytics-api-prod',
     outputBucketName: 'test-analytics-gtng-output',
-    protectBucketsFromDelete: true,
-    enableBucketVersioning: true,
+    additionalOutputBucketPolicyStatements: [
+      new PolicyStatement({
+        sid: 'AllowAthenaAccess',
+        effect: Effect.ALLOW,
+        principals: [new ArnPrincipal('arn:aws:iam::320887606173:user/naeem_gitonga_web_app')],
+        actions: ['s3:GetBucketVersioning', 's3:ListBucket', 's3:GetObject', 's3:PutObject'],
+        resources: [
+          'arn:aws:s3:::test-analytics-gtng-output',
+          'arn:aws:s3:::test-analytics-gtng-output/*',
+        ],
+      }),
+    ],
     additionalBucketPolicyStatements: [
       new PolicyStatement({
         sid: 'AthenaQueryResults',
