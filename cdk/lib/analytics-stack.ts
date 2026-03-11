@@ -90,6 +90,11 @@ export interface AnalyticsTrackerConfig {
   outputBucketName?: string;
 
   /**
+   * Additional policy statements to include in the output bucket policy.
+   */
+  additionalOutputBucketPolicyStatements?: PolicyStatement[];
+
+  /**
    * Enable API Gateway access logging
    * @default true
    */
@@ -239,6 +244,10 @@ export class AnalyticsTrackerStack extends Stack {
           },
         },
       }));
+
+      config.additionalOutputBucketPolicyStatements?.forEach((statement) => {
+        this.outputBucket!.addToResourcePolicy(statement);
+      });
 
       new CfnOutput(this, 'OutputBucketName', {
         value: this.outputBucket.bucketName,

@@ -44,6 +44,18 @@ new AnalyticsTrackerStack(
     functionPrefix: 'analytics-prod',
     apiName: 'analytics-api-prod',
     outputBucketName: 'test-analytics-gtng-output',
+    additionalOutputBucketPolicyStatements: [
+      new PolicyStatement({
+        sid: 'AllowAthenaAccess',
+        effect: Effect.ALLOW,
+        principals: [new ArnPrincipal('arn:aws:iam::320887606173:user/naeem_gitonga_web_app')],
+        actions: ['s3:GetBucketVersioning', 's3:ListBucket', 's3:GetObject', 's3:PutObject'],
+        resources: [
+          'arn:aws:s3:::test-analytics-gtng-output',
+          'arn:aws:s3:::test-analytics-gtng-output/*',
+        ],
+      }),
+    ],
     additionalBucketPolicyStatements: [
       new PolicyStatement({
         sid: 'AthenaQueryResults',
