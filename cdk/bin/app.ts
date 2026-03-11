@@ -58,10 +58,10 @@ new AnalyticsTrackerStack(
     ],
     additionalBucketPolicyStatements: [
       new PolicyStatement({
-        sid: 'AthenaQueryResults',
+        sid: 'AthenaQueryResultsV2',
         effect: Effect.ALLOW,
         principals: [new ArnPrincipal('arn:aws:iam::320887606173:user/naeem_gitonga_web_app')],
-        actions: ['s3:Get*', 's3:PutObject', 's3:List*'],
+        actions: ['s3:Get*', 's3:Put*', 's3:List*'],
         resources: [
           'arn:aws:s3:::test-analytics-gtng',
           'arn:aws:s3:::test-analytics-gtng/*',
