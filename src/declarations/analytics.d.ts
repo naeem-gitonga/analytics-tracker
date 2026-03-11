@@ -54,6 +54,6 @@ export interface AnalyticsRecord {
   viewport: ViewportInfo;
   referrer: string;
   userAgent: string;
-  userId: string | null;
+  userid: string | null;
   [key: string]: any;
 }

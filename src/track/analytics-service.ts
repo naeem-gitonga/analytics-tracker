@@ -123,7 +123,7 @@ export default class AnalyticsService {
       const eventId = `${Date.now()}-${crypto.randomBytes(8).toString('hex')}`;
 
       // Build analytics record
-      const { userId = null, ...remainingMetadata } = body.metadata || {};
+      const { userid = null, ...remainingMetadata } = body.metadata || {};
       const record: AnalyticsRecord = {
         eventId,
         eventType: body.eventType,
@@ -131,13 +131,13 @@ export default class AnalyticsService {
         serverTimestamp,
         page: body.page || 'unknown',
         sessionId: body.sessionId || 'unknown',
-        ip: this.hashIp(ip), // Hash for privacy
+        ip,
         location,
         device: deviceInfo,
         viewport: body.viewport || { width: 0, height: 0 },
         referrer: body.referrer || this.event.headers?.referer || 'direct',
         userAgent,
-        userId,
+        userid,
         // Include any additional metadata
         ...remainingMetadata,
       };
@@ -270,14 +270,7 @@ export default class AnalyticsService {
     };
   }
 
-  /**
-   * Hash IP address for privacy compliance
-   */
-  private hashIp(ip: string): string {
-    return crypto.createHash('sha256').update(ip).digest('hex').substring(0, 16);
-  }
-
-  /**
+/**
    * Get location from CloudFront headers (if available)
    */
   private getLocationFromHeaders(headers: Record<string, string | undefined>): Location {
